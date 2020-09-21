@@ -47,7 +47,7 @@ class Ui_qAuthClass(object):
         # will look for a better way to reset it
         if aValue == 30:
 
-            self.build2FA()
+            self.build2FA(True)
 
             # This reload of data prevents recently added new data not being showed
             # when timer resets. Should check for a more performant way to do this
@@ -62,7 +62,7 @@ class Ui_qAuthClass(object):
         out2FA = os.popen(cmdAuth).read()
         return out2FA.rstrip()
     
-    def build2FA(self):
+    def build2FA(self, boolReset):
         """
         Generates Time-based One-time Password
         """
@@ -74,13 +74,16 @@ class Ui_qAuthClass(object):
             self.tblKeys.item(intRow,2).setTextAlignment(QtCore.Qt.AlignRight)
             #self.tblKeys.item(intRow,2).setFlags(QtCore.Qt.ItemIsEditable) 
 
-        # Resets remaining time
-        self.remainingTime.setProperty("value", 0)
+        # As the counter is using threads, this boolean prevents counter going crazy
+        # when adding other accounts before the counter gets reset
+        if boolReset:
+            # Resets remaining time
+            self.remainingTime.setProperty("value", 0)
 
-        # Calls function to increase time
-        self.calc = External()
-        self.calc.countChanged.connect(self.onCountChanged)
-        self.calc.start()  
+            # Calls function to increase time
+            self.calc = External()
+            self.calc.countChanged.connect(self.onCountChanged)
+            self.calc.start()  
 
 
     def loadData(self):
@@ -95,31 +98,11 @@ class Ui_qAuthClass(object):
             for column_number, data in enumerate(row_data):
                 self.tblKeys.setItem(row_number, column_number, QtWidgets.QTableWidgetItem(str(data)))       
 
-            # Remove OTP button
-            print("fila " + str(row_number))
-            removeButton = QtWidgets.QPushButton()
-            #self.removeButton.setMaximumSize(QtCore.QSize(100, 16777215))
-            removeButton.setObjectName("removeButton")
-            removeButton.setIcon(QtGui.QIcon.fromTheme('delete'))
-            removeButton.setMaximumWidth(34)
-            removeButton.clicked.connect(self.removeOTP)
-
-            cell_widget = QtWidgets.QWidget()
-            lay_out = QtWidgets.QHBoxLayout(cell_widget)
-            lay_out.addWidget(removeButton)
-            lay_out.setAlignment(QtCore.Qt.AlignCenter)
-            lay_out.setContentsMargins(0,0,0,0)
-            cell_widget.setLayout(lay_out)
-
-            self.tblKeys.setCellWidget(row_number, 3, cell_widget)
- 
-
-
-        # close connection
+         # close connection
         connQauth.close()
         
         # Generates Time-based One-time Password
-        self.build2FA()
+        self.build2FA(True)
         """
         # Resets remaining time
         self.remainingTime.setProperty("value", 0)
@@ -149,6 +132,42 @@ class Ui_qAuthClass(object):
 
         cur.close()
 
+
+    # Remove OTP
+    def removeOTP(self):
+
+        """
+        Deletes OTP from database
+        """
+
+        # Current row
+        intCurrRow = self.tblKeys.currentRow()
+        print("current row " + str(intCurrRow))
+        
+        strService = self.tblKeys.item(intCurrRow,0)
+        strOTP = self.tblKeys.item(intCurrRow,1)
+        anArrayData = (strService.text(), strOTP.text())
+
+        print(strService)
+        print(strOTP)
+        connOTP = sqlite3.connect(db_path)
+
+        # SQL file
+        strFileName = BASE_DIR + "delete_key.sql"
+        fd = open(strFileName, 'r')
+        sqlFile = fd.read()
+        fd.close()
+
+        # Deletes OTP
+        cur = connOTP.cursor()
+        cur.execute(sqlFile, (anArrayData))
+        connOTP.commit()
+
+        cur.close()
+
+        self.tblKeys.removeRow(intCurrRow)
+
+
     def addService(self):
         """
         Calls a pop-up window to add a new OTP
@@ -173,21 +192,11 @@ class Ui_qAuthClass(object):
             # Add a new row with entered values
             intRow = int(self.tblKeys.rowCount())
             self.tblKeys.insertRow(intRow)
-            self.tblKeys.setItem(intRow, 0, QtWidgets.QTableWidgetItem(str(strService)))
-            self.tblKeys.setItem(intRow, 1, QtWidgets.QTableWidgetItem(str(strOTP)))
+            self.tblKeys.setItem(intRow, 0, QtWidgets.QTableWidgetItem(str(strService).upper()))
+            self.tblKeys.setItem(intRow, 1, QtWidgets.QTableWidgetItem(str(strOTP).upper()))
 
             # Generates Time-based One-time Password for all files again
-            self.build2FA()
-
-    # Remove OTP
-    def removeOTP(self):
-        global intSequence
-        indexes = self.tblKeys.selectionModel().selectedRows()
-        for index in sorted(indexes):
-            self.ui.listFiles.removeRow(index.row())
-        self.synchNumbers()
-        intSequence = intSequence - 1
-    
+            self.build2FA(False)
 
     # About Dialog
     def showAbout(self):
@@ -203,6 +212,7 @@ class Ui_qAuthClass(object):
         self.centralwidget.setObjectName("centralwidget")
         self.verticalLayout = QtWidgets.QVBoxLayout(self.centralwidget)
         self.verticalLayout.setObjectName("verticalLayout")
+
         self.horizontalLayout = QtWidgets.QHBoxLayout()
         self.horizontalLayout.setContentsMargins(5, 5, -1, 5)
         self.horizontalLayout.setObjectName("horizontalLayout")
@@ -211,10 +221,13 @@ class Ui_qAuthClass(object):
         self.tblKeys = QtWidgets.QTableWidget(self.centralwidget)
         self.tblKeys.setMaximumSize(QtCore.QSize(540, 16777215))
         self.tblKeys.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.UpArrowCursor))
-        self.tblKeys.setColumnCount(4)
+        self.tblKeys.setColumnCount(3)
         self.tblKeys.setObjectName("tblKeys")
         self.tblKeys.setRowCount(0)
         self.tblKeys.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.tblKeys.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.tblKeys.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+  
         
         # Column Definition: Service
         item = QtWidgets.QTableWidgetItem()
@@ -235,46 +248,73 @@ class Ui_qAuthClass(object):
         self.tblKeys.setColumnWidth(2,70)
 
         # Remove Button
-        item = QtWidgets.QTableWidgetItem()
-        item.setTextAlignment(QtCore.Qt.AlignRight)
-        self.tblKeys.setHorizontalHeaderItem(3, item)
-        self.tblKeys.setColumnWidth(3,50)
+        #item = QtWidgets.QTableWidgetItem()
+        #item.setTextAlignment(QtCore.Qt.AlignRight)
+        #self.tblKeys.setHorizontalHeaderItem(3, item)
+        #self.tblKeys.setColumnWidth(3,50)
 
         self.horizontalLayout.addWidget(self.tblKeys)
         
-        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-        self.horizontalLayout.addItem(spacerItem)
+       # spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+       # self.horizontalLayout.addItem(spacerItem)
+        
         self.verticalGroupBox = QtWidgets.QGroupBox(self.centralwidget)
         self.verticalGroupBox.setMaximumSize(QtCore.QSize(120, 16777215))
         self.verticalGroupBox.setObjectName("verticalGroupBox")
+        
         self.verticalLayout_3 = QtWidgets.QVBoxLayout(self.verticalGroupBox)
         self.verticalLayout_3.setContentsMargins(5, -1, -1, -1)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
-        
+
         # remaining time
+        self.timeLayout = QtWidgets.QHBoxLayout()
+        self.timeLayout.setObjectName("timeLayout")
+        self.timeLayout.setAlignment(QtCore.Qt.AlignCenter)
+
         self.remainingTime = QtWidgets.QProgressBar(self.verticalGroupBox)
-        self.remainingTime.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.remainingTime.setMaximumSize(QtCore.QSize(16777215, 16777215))
         self.remainingTime.setProperty("value", 0)
         self.remainingTime.setAlignment(QtCore.Qt.AlignCenter)
         self.remainingTime.setTextDirection(QtWidgets.QProgressBar.TopToBottom)
         self.remainingTime.setObjectName("remainingTime")
-        self.verticalLayout_3.addWidget(self.remainingTime)
+        self.timeLayout.addWidget(self.remainingTime,0)
+
+        self.verticalLayout_3.addLayout(self.timeLayout)
+        
+        # Buttons Layout
+
+        self.buttonsLayout = QtWidgets.QHBoxLayout()
+        self.buttonsLayout.setObjectName("buttonsLayout")
         
         # Add OTP Pushbutton
         self.btn_Add = QtWidgets.QPushButton(self.verticalGroupBox)
         self.btn_Add.setObjectName("btn_Add")
         self.btn_Add.setMaximumWidth(34)
-        self.verticalLayout_3.addWidget(self.btn_Add)
+        self.buttonsLayout.addWidget(self.btn_Add)
         self.btn_Add.clicked.connect(self.addService)
+
+        # Remove OTP button
+        self.removeButton = QtWidgets.QPushButton(self.verticalGroupBox)
+        #self.removeButton.setMaximumSize(QtCore.QSize(100, 16777215))
+        self.removeButton.setObjectName("removeButton")
+        self.removeButton.setIcon(QtGui.QIcon.fromTheme('edit-delete-symbolic'))
+        self.removeButton.setMaximumWidth(34)
+        self.buttonsLayout.addWidget(self.removeButton)
+        self.removeButton.clicked.connect(self.removeOTP)
 
         # Show Pushbutton
         self.showButton = QtWidgets.QPushButton(self.verticalGroupBox)
         self.showButton.setObjectName("showButton")
-        self.showButton.setMaximumWidth(34)
-        self.verticalLayout_3.addWidget(self.showButton)
+        self.showButton.setMaximumWidth(32)
+        self.buttonsLayout.addWidget(self.showButton)
 
         # Clipboard Pushbutton
         # is it necessary?
+
+        self.verticalLayout_3.addLayout(self.buttonsLayout)
+
+        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.verticalLayout_3.addItem(spacerItem1)
 
         self.horizontalLayout.addWidget(self.verticalGroupBox)
         self.verticalLayout.addLayout(self.horizontalLayout)
@@ -335,14 +375,14 @@ class Ui_qAuthClass(object):
         item = self.tblKeys.horizontalHeaderItem(2)
         item.setText(_translate("qAuthClass", "2FA"))
 
-        item = self.tblKeys.horizontalHeaderItem(3)
-        item.setText(_translate("qAuthClass", ""))
+        #item = self.tblKeys.horizontalHeaderItem(3)
+        #item.setText(_translate("qAuthClass", ""))
         
         # Buttons
         # self.btn_load.setText(_translate("qAuthClass", "Cargar"))
         #self.btn_Add.setText(_translate("qAuthClass", "Agregar"))
-        self.btn_Add.setIcon(QtGui.QIcon.fromTheme('list-add'))
-        self.showButton.setIcon(QtGui.QIcon.fromTheme('hint'))
+        self.btn_Add.setIcon(QtGui.QIcon.fromTheme('list-add-symbolic'))
+        self.showButton.setIcon(QtGui.QIcon.fromTheme('view-reveal-symbolic'))
 
         # Menu
         self.menuFile.setTitle(_translate("qAuthClass", "Fi&le"))
