@@ -12,7 +12,7 @@ import time
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QMessageBox
+from PyQt5.QtWidgets import QDialog, QMessageBox, QLineEdit, QFileDialog
 
 from addService import Ui_Dialog
 
@@ -68,11 +68,18 @@ class Ui_qAuthClass(object):
         """
 
         for intRow in range(int(self.tblKeys.rowCount())):
+
+            strOTPhidden = self.tblKeys.item(intRow,3)
             strOTP = self.tblKeys.item(intRow,1)
-            str2FA = self.return2FA(strOTP.text())    
+            
+
+            str2FA = self.return2FA(strOTP.text()) 
             self.tblKeys.setItem(intRow, 2, QtWidgets.QTableWidgetItem(str(str2FA)))
-            self.tblKeys.item(intRow,2).setTextAlignment(QtCore.Qt.AlignRight)
-            #self.tblKeys.item(intRow,2).setFlags(QtCore.Qt.ItemIsEditable) 
+            #col = self.tblKeys.item(intRow, 2)
+            #col.setText(str2FA)
+            self.tblKeys.item(intRow,2).setTextAlignment(QtCore.Qt.AlignCenter)
+
+            strOTP.setText("*********")
 
         # As the counter is using threads, this boolean prevents counter going crazy
         # when adding other accounts before the counter gets reset
@@ -87,7 +94,10 @@ class Ui_qAuthClass(object):
 
 
     def loadData(self):
-        connQauth = sqlite3.connect(db_path)
+
+        global dbPath
+
+        connQauth = sqlite3.connect(dbPath)
         strQuery = "SELECT strServicio, strOTP from keys"
         resultQuery = connQauth.execute(strQuery)
         
@@ -96,28 +106,69 @@ class Ui_qAuthClass(object):
         for row_number, row_data in enumerate(resultQuery):
             self.tblKeys.insertRow(row_number)
             for column_number, data in enumerate(row_data):
-                self.tblKeys.setItem(row_number, column_number, QtWidgets.QTableWidgetItem(str(data)))       
+                #self.tblKeys.setItem(row_number, column_number, QtWidgets.QTableWidgetItem(str(data)))
+                
+                if column_number == 0:
+                    self.tblKeys.setItem(row_number, 0, QtWidgets.QTableWidgetItem(str(data)))
+                if column_number == 1:
+                    print(str(data))
+                    self.tblKeys.setItem(row_number, 1, QtWidgets.QTableWidgetItem(str(data)))
+                    self.tblKeys.setItem(row_number, 3, QtWidgets.QTableWidgetItem(str(data)))
 
          # close connection
         connQauth.close()
         
         # Generates Time-based One-time Password
         self.build2FA(True)
-        """
-        # Resets remaining time
-        self.remainingTime.setProperty("value", 0)
 
-        # Calls function to increase time
-        self.calc = External()
-        self.calc.countChanged.connect(self.onCountChanged)
-        self.calc.start()          
+    # File Dialog box
+    def callOpenDialog(self):
         """
+        Opens a keys database
+        """
+
+        self.openFileNamesDialog()
+
+    def openFileNamesDialog(self, dir=None):
+        """
+        Opens file name dialog
+        """
+
+        if dir is None:
+            dir = './'
+
+        fname = QFileDialog.getOpenFileName(None, "Open Database...",
+                                            dir, filter="Sqlite DB (*.db)")
+
+        if fname:
+            self.setDBName(fname[0])
+
+    def setDBName(self, aFilename):
+        """
+        Sets database name
+        """
+        global dbPath
+
+        srcFile = aFilename.split("/")[-1]
+        srcFolder = aFilename.split(srcFile, 1)[0]
+        lenSplit = len(srcFolder.split("/")) - 2
+
+
+        # Base de datos
+        #BASE_DIR = srcFolder
+        dbPath = os.path.join(srcFolder, srcFile)
+        #print (srcFile)
+        #print ("directorio " + srcFolder)
+        self.loadData()
+       
 
     def insertKey(self, anArrayData):
         """
         Inserts OTP to database
         """
-        connOTP = sqlite3.connect(db_path)
+        global dbPath
+
+        connOTP = sqlite3.connect(dbPath)
 
         # SQL file
         strFileName = BASE_DIR + "insert_key.sql"
@@ -140,17 +191,19 @@ class Ui_qAuthClass(object):
         Deletes OTP from database
         """
 
+        global dbPath
+
         # Current row
         intCurrRow = self.tblKeys.currentRow()
         print("current row " + str(intCurrRow))
         
         strService = self.tblKeys.item(intCurrRow,0)
-        strOTP = self.tblKeys.item(intCurrRow,1)
+        strOTP = self.tblKeys.item(intCurrRow,3)
         anArrayData = (strService.text(), strOTP.text())
 
-        print(strService)
-        print(strOTP)
-        connOTP = sqlite3.connect(db_path)
+        print(strService.text())
+        print(strOTP.text())
+        connOTP = sqlite3.connect(dbPath)
 
         # SQL file
         strFileName = BASE_DIR + "delete_key.sql"
@@ -166,6 +219,21 @@ class Ui_qAuthClass(object):
         cur.close()
 
         self.tblKeys.removeRow(intCurrRow)
+
+    def showOTP(self):
+        """
+        Shows/Hides OTP
+        """
+        for intRow in range(int(self.tblKeys.rowCount())):
+
+            strOTPhidden = self.tblKeys.item(intRow,3)
+            strOTP = self.tblKeys.item(intRow,1)
+
+            if not strOTP.text() == "*********":
+                strOTP.setText("*********")
+            else:
+                #if strOTP.text() == "*********":
+                strOTP.setText(strOTPhidden.text())
 
 
     def addService(self):
@@ -221,14 +289,13 @@ class Ui_qAuthClass(object):
         self.tblKeys = QtWidgets.QTableWidget(self.centralwidget)
         self.tblKeys.setMaximumSize(QtCore.QSize(540, 16777215))
         self.tblKeys.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.UpArrowCursor))
-        self.tblKeys.setColumnCount(3)
+        self.tblKeys.setColumnCount(4)
         self.tblKeys.setObjectName("tblKeys")
         self.tblKeys.setRowCount(0)
         self.tblKeys.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.tblKeys.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
         self.tblKeys.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-  
-        
+   
         # Column Definition: Service
         item = QtWidgets.QTableWidgetItem()
         item.setTextAlignment(QtCore.Qt.AlignLeft)
@@ -240,12 +307,21 @@ class Ui_qAuthClass(object):
         item.setTextAlignment(QtCore.Qt.AlignLeft)
         self.tblKeys.setHorizontalHeaderItem(1, item)
         self.tblKeys.setColumnWidth(1,180)
-        
+       
         # Column Definition: 2FA
         item = QtWidgets.QTableWidgetItem()
-        item.setTextAlignment(QtCore.Qt.AlignRight)
+        item.setTextAlignment(QtCore.Qt.AlignCenter)
         self.tblKeys.setHorizontalHeaderItem(2, item)
         self.tblKeys.setColumnWidth(2,70)
+
+        # Column Definition: OTP 2 (hidden)
+        item = QtWidgets.QTableWidgetItem()
+        item.setTextAlignment(QtCore.Qt.AlignLeft)
+        self.tblKeys.setHorizontalHeaderItem(3, item)
+        self.tblKeys.setColumnWidth(3,10)
+
+        # Hide OTP 2
+        self.tblKeys.hideColumn(3)
 
         # Remove Button
         #item = QtWidgets.QTableWidgetItem()
@@ -282,14 +358,14 @@ class Ui_qAuthClass(object):
         self.verticalLayout_3.addLayout(self.timeLayout)
         
         # Buttons Layout
-
         self.buttonsLayout = QtWidgets.QHBoxLayout()
         self.buttonsLayout.setObjectName("buttonsLayout")
         
         # Add OTP Pushbutton
         self.btn_Add = QtWidgets.QPushButton(self.verticalGroupBox)
-        self.btn_Add.setObjectName("btn_Add")
+        self.btn_Add.setObjectName("btn_Add")        
         self.btn_Add.setMaximumWidth(34)
+        self.btn_Add.setIcon(QtGui.QIcon.fromTheme('list-add-symbolic'))        
         self.buttonsLayout.addWidget(self.btn_Add)
         self.btn_Add.clicked.connect(self.addService)
 
@@ -297,16 +373,18 @@ class Ui_qAuthClass(object):
         self.removeButton = QtWidgets.QPushButton(self.verticalGroupBox)
         #self.removeButton.setMaximumSize(QtCore.QSize(100, 16777215))
         self.removeButton.setObjectName("removeButton")
-        self.removeButton.setIcon(QtGui.QIcon.fromTheme('edit-delete-symbolic'))
         self.removeButton.setMaximumWidth(34)
+        self.removeButton.setIcon(QtGui.QIcon.fromTheme('edit-delete-symbolic'))        
         self.buttonsLayout.addWidget(self.removeButton)
         self.removeButton.clicked.connect(self.removeOTP)
 
         # Show Pushbutton
         self.showButton = QtWidgets.QPushButton(self.verticalGroupBox)
-        self.showButton.setObjectName("showButton")
-        self.showButton.setMaximumWidth(32)
+        self.showButton.setObjectName("showButton")     
+        self.showButton.setMaximumWidth(34)
+        self.showButton.setIcon(QtGui.QIcon.fromTheme('view-visible'))        
         self.buttonsLayout.addWidget(self.showButton)
+        self.showButton.clicked.connect(self.showOTP)
 
         # Clipboard Pushbutton
         # is it necessary?
@@ -335,10 +413,10 @@ class Ui_qAuthClass(object):
         qAuthClass.setStatusBar(self.statusbar)
 
         # Force reloading all data
-        self.reloadData = QtWidgets.QAction(qAuthClass)
-        self.reloadData.setObjectName("reloadData")
-        self.reloadData.triggered.connect(self.loadData)
-        self.menuFile.addAction(self.reloadData)
+        self.openDB = QtWidgets.QAction(qAuthClass)
+        self.openDB.setObjectName("openDB")
+        self.openDB.triggered.connect(self.callOpenDialog)
+        self.menuFile.addAction(self.openDB)
 
         # About
         self.aboutAction = QtWidgets.QAction(qAuthClass)
@@ -358,7 +436,7 @@ class Ui_qAuthClass(object):
         
         QtCore.QMetaObject.connectSlotsByName(qAuthClass)
 
-        self.loadData()
+        #self.loadData()
 
 
     def retranslateUi(self, qAuthClass):
@@ -381,25 +459,23 @@ class Ui_qAuthClass(object):
         # Buttons
         # self.btn_load.setText(_translate("qAuthClass", "Cargar"))
         #self.btn_Add.setText(_translate("qAuthClass", "Agregar"))
-        self.btn_Add.setIcon(QtGui.QIcon.fromTheme('list-add-symbolic'))
-        self.showButton.setIcon(QtGui.QIcon.fromTheme('view-reveal-symbolic'))
 
         # Menu
         self.menuFile.setTitle(_translate("qAuthClass", "Fi&le"))
-        self.reloadData.setText(_translate("qAuthClass", "&Reload keys"))
+        self.openDB.setText(_translate("qAuthClass", "&Open database"))
         self.aboutAction.setText(_translate("qAuthClass", "&About"))
         self.actionQuit.setText(_translate("qAuthClass", "&Quit"))
 
  
 if __name__ == "__main__":
+
     
-    # Base de datos
     BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + "/db/"
-    db_path = os.path.join(BASE_DIR, "qauth.db")
-    
+    #dbPath = os.path.join(BASE_DIR, "qauth.db")
+    global dbPath
+
     # Time limit
     TIME_LIMIT = 30
-
 
     app = QtWidgets.QApplication(sys.argv)
     qAuthClass = QtWidgets.QMainWindow()
