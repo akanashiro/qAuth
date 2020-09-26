@@ -10,7 +10,9 @@ import time
 # Rutas
 #sys.path.append(".")
 
+
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.Qt import QApplication, QClipboard
 from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QMessageBox, QLineEdit, QFileDialog
 
@@ -73,7 +75,7 @@ class Ui_qAuthClass(object):
             strOTP = self.tblKeys.item(intRow,1)
             
 
-            str2FA = self.return2FA(strOTP.text()) 
+            str2FA = self.return2FA(strOTPhidden.text()) 
             self.tblKeys.setItem(intRow, 2, QtWidgets.QTableWidgetItem(str(str2FA)))
             #col = self.tblKeys.item(intRow, 2)
             #col.setText(str2FA)
@@ -195,7 +197,7 @@ class Ui_qAuthClass(object):
 
         # Current row
         intCurrRow = self.tblKeys.currentRow()
-        print("current row " + str(intCurrRow))
+        #print("current row " + str(intCurrRow))
         
         strService = self.tblKeys.item(intCurrRow,0)
         strOTP = self.tblKeys.item(intCurrRow,3)
@@ -219,6 +221,22 @@ class Ui_qAuthClass(object):
         cur.close()
 
         self.tblKeys.removeRow(intCurrRow)
+
+
+    def copyOTP(self):
+        """
+        Copy text to clipboard
+        """
+        
+        # Current row
+        intCurrRow = self.tblKeys.currentRow()
+        print("current row " + str(intCurrRow))
+
+        str2FA = self.tblKeys.item(intCurrRow,2)
+      
+        QApplication.clipboard().setText(str2FA.text())
+
+
 
     def showOTP(self):
         """
@@ -262,6 +280,7 @@ class Ui_qAuthClass(object):
             self.tblKeys.insertRow(intRow)
             self.tblKeys.setItem(intRow, 0, QtWidgets.QTableWidgetItem(str(strService).upper()))
             self.tblKeys.setItem(intRow, 1, QtWidgets.QTableWidgetItem(str(strOTP).upper()))
+            self.tblKeys.setItem(intRow, 3, QtWidgets.QTableWidgetItem(str(strOTP).upper()))
 
             # Generates Time-based One-time Password for all files again
             self.build2FA(False)
@@ -300,13 +319,13 @@ class Ui_qAuthClass(object):
         item = QtWidgets.QTableWidgetItem()
         item.setTextAlignment(QtCore.Qt.AlignLeft)
         self.tblKeys.setHorizontalHeaderItem(0, item)
-        self.tblKeys.setColumnWidth(0,200)
+        self.tblKeys.setColumnWidth(0,150)
         
         # Column Definition: OTP
         item = QtWidgets.QTableWidgetItem()
         item.setTextAlignment(QtCore.Qt.AlignLeft)
         self.tblKeys.setHorizontalHeaderItem(1, item)
-        self.tblKeys.setColumnWidth(1,180)
+        self.tblKeys.setColumnWidth(1,240)
        
         # Column Definition: 2FA
         item = QtWidgets.QTableWidgetItem()
@@ -362,12 +381,13 @@ class Ui_qAuthClass(object):
         self.buttonsLayout.setObjectName("buttonsLayout")
         
         # Add OTP Pushbutton
-        self.btn_Add = QtWidgets.QPushButton(self.verticalGroupBox)
-        self.btn_Add.setObjectName("btn_Add")        
-        self.btn_Add.setMaximumWidth(34)
-        self.btn_Add.setIcon(QtGui.QIcon.fromTheme('list-add-symbolic'))        
-        self.buttonsLayout.addWidget(self.btn_Add)
-        self.btn_Add.clicked.connect(self.addService)
+        self.addButton = QtWidgets.QPushButton(self.verticalGroupBox)
+        self.addButton.setObjectName("addButton")        
+        self.addButton.setMaximumWidth(34)
+        self.addButton.setIcon(QtGui.QIcon.fromTheme('list-add-symbolic'))        
+        self.buttonsLayout.addWidget(self.addButton)
+        self.addButton.clicked.connect(self.addService)
+        self.addButton.setToolTip("Add Authentication")
 
         # Remove OTP button
         self.removeButton = QtWidgets.QPushButton(self.verticalGroupBox)
@@ -377,6 +397,7 @@ class Ui_qAuthClass(object):
         self.removeButton.setIcon(QtGui.QIcon.fromTheme('edit-delete-symbolic'))        
         self.buttonsLayout.addWidget(self.removeButton)
         self.removeButton.clicked.connect(self.removeOTP)
+        self.removeButton.setToolTip("Remove Authentication")
 
         # Show Pushbutton
         self.showButton = QtWidgets.QPushButton(self.verticalGroupBox)
@@ -385,9 +406,16 @@ class Ui_qAuthClass(object):
         self.showButton.setIcon(QtGui.QIcon.fromTheme('view-visible'))        
         self.buttonsLayout.addWidget(self.showButton)
         self.showButton.clicked.connect(self.showOTP)
+        self.showButton.setToolTip("Show OTP")
 
         # Clipboard Pushbutton
-        # is it necessary?
+        self.clipboardButton = QtWidgets.QPushButton(self.verticalGroupBox)
+        self.clipboardButton.setObjectName("clipboardButton")     
+        self.clipboardButton.setMaximumWidth(34)
+        self.clipboardButton.setIcon(QtGui.QIcon.fromTheme('edit-copy'))        
+        self.buttonsLayout.addWidget(self.clipboardButton)
+        self.clipboardButton.clicked.connect(self.copyOTP)
+        self.clipboardButton.setToolTip("Copy 2FA")
 
         self.verticalLayout_3.addLayout(self.buttonsLayout)
 
@@ -458,7 +486,7 @@ class Ui_qAuthClass(object):
         
         # Buttons
         # self.btn_load.setText(_translate("qAuthClass", "Cargar"))
-        #self.btn_Add.setText(_translate("qAuthClass", "Agregar"))
+        #self.addButton.setText(_translate("qAuthClass", "Agregar"))
 
         # Menu
         self.menuFile.setTitle(_translate("qAuthClass", "Fi&le"))
