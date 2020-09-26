@@ -7,7 +7,8 @@ Dependencies:
 Very alpha stage but, what can do:
 - Open a db stored in a different location
 - Add service
-- Copy 2FA token
+- Copy to clipboard selected "2FA token"
+- Show/Hide OTP
 
 What can not do yet:
 - Create a db file.
