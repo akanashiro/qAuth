@@ -123,15 +123,39 @@ class Ui_qAuthClass(object):
         # Generates Time-based One-time Password
         self.build2FA(True)
 
+    #***************** FILE DIALOG *****************
+
+    # Create DB File
+    def createDatabase(self):
+        """
+        Create db file and save in path
+        """
+        self.saveFileNameDialog()
+
+    def saveFileNameDialog(self, dir=None):
+        """
+        Opens Save File dialog
+        """
+        
+        if dir is None:
+            dir = './'
+
+        name = QFileDialog.getSaveFileName(None, "Create Database", dir, filter="Sqlite DB (*.db)")
+        fileName = open(name,'w')
+        text = self.textEdit.toPlainText()
+        fileName.write(text)
+        fileName.close()
+
+
     # File Dialog box
-    def callOpenDialog(self):
+    def openDatabase(self):
         """
         Opens a keys database
         """
 
-        self.openFileNamesDialog()
+        self.openFileNameDialog()
 
-    def openFileNamesDialog(self, dir=None):
+    def openFileNameDialog(self, dir=None):
         """
         Opens file name dialog
         """
@@ -139,11 +163,11 @@ class Ui_qAuthClass(object):
         if dir is None:
             dir = './'
 
-        fname = QFileDialog.getOpenFileName(None, "Open Database...",
+        fileName = QFileDialog.getOpenFileName(None, "Open Database...",
                                             dir, filter="Sqlite DB (*.db)")
 
-        if fname:
-            self.setDBName(fname[0])
+        if fileName:
+            self.setDBName(fileName[0])
 
     def setDBName(self, aFilename):
         """
@@ -156,13 +180,14 @@ class Ui_qAuthClass(object):
         lenSplit = len(srcFolder.split("/")) - 2
 
 
-        # Base de datos
-        #BASE_DIR = srcFolder
+        # Database
         dbPath = os.path.join(srcFolder, srcFile)
         #print (srcFile)
         #print ("directorio " + srcFolder)
         self.loadData()
        
+
+    #***************** SQL Actions *****************
 
     def insertKey(self, anArrayData):
         """
@@ -185,6 +210,12 @@ class Ui_qAuthClass(object):
 
         cur.close()
 
+    def deleteKey(self, anArrayData):
+        """
+        Have to move sql from removeOTP
+        """
+
+    #***************** OTP Management *****************
 
     # Remove OTP
     def removeOTP(self):
@@ -236,8 +267,6 @@ class Ui_qAuthClass(object):
       
         QApplication.clipboard().setText(str2FA.text())
 
-
-
     def showOTP(self):
         """
         Shows/Hides OTP
@@ -250,9 +279,7 @@ class Ui_qAuthClass(object):
             if not strOTP.text() == "*********":
                 strOTP.setText("*********")
             else:
-                #if strOTP.text() == "*********":
                 strOTP.setText(strOTPhidden.text())
-
 
     def addService(self):
         """
@@ -342,12 +369,6 @@ class Ui_qAuthClass(object):
         # Hide OTP 2
         self.tblKeys.hideColumn(3)
 
-        # Remove Button
-        #item = QtWidgets.QTableWidgetItem()
-        #item.setTextAlignment(QtCore.Qt.AlignRight)
-        #self.tblKeys.setHorizontalHeaderItem(3, item)
-        #self.tblKeys.setColumnWidth(3,50)
-
         self.horizontalLayout.addWidget(self.tblKeys)
         
        # spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
@@ -361,7 +382,7 @@ class Ui_qAuthClass(object):
         self.verticalLayout_3.setContentsMargins(5, -1, -1, -1)
         self.verticalLayout_3.setObjectName("verticalLayout_3")
 
-        # remaining time
+        # Remaining time
         self.timeLayout = QtWidgets.QHBoxLayout()
         self.timeLayout.setObjectName("timeLayout")
         self.timeLayout.setAlignment(QtCore.Qt.AlignCenter)
@@ -391,7 +412,6 @@ class Ui_qAuthClass(object):
 
         # Remove OTP button
         self.removeButton = QtWidgets.QPushButton(self.verticalGroupBox)
-        #self.removeButton.setMaximumSize(QtCore.QSize(100, 16777215))
         self.removeButton.setObjectName("removeButton")
         self.removeButton.setMaximumWidth(34)
         self.removeButton.setIcon(QtGui.QIcon.fromTheme('edit-delete-symbolic'))        
@@ -440,10 +460,20 @@ class Ui_qAuthClass(object):
         self.statusbar.setObjectName("statusbar")
         qAuthClass.setStatusBar(self.statusbar)
 
-        # Force reloading all data
+        # Create database
+        self.createDB = QtWidgets.QAction(qAuthClass)
+        self.createDB.setObjectName("createDB")
+
+        self.createDB.setShortcut("Ctrl+N")
+        self.createDB.setStatusTip('New Database')
+        self.createDB.triggered.connect(self.createDatabase)
+        self.menuFile.addAction(self.createDB)
+
+        # Open database
         self.openDB = QtWidgets.QAction(qAuthClass)
         self.openDB.setObjectName("openDB")
-        self.openDB.triggered.connect(self.callOpenDialog)
+        self.openDB.setShortcut("Ctrl+O")
+        self.openDB.triggered.connect(self.openDatabase)
         self.menuFile.addAction(self.openDB)
 
         # About
@@ -455,6 +485,7 @@ class Ui_qAuthClass(object):
         # Quit
         self.actionQuit = QtWidgets.QAction(qAuthClass)
         self.actionQuit.setObjectName("actionQuit")
+        self.actionQuit.setShortcut("Ctrl+Q")
         self.menuFile.addAction(self.actionQuit)
         self.menubar.addAction(self.menuFile.menuAction())
 
@@ -481,15 +512,9 @@ class Ui_qAuthClass(object):
         item = self.tblKeys.horizontalHeaderItem(2)
         item.setText(_translate("qAuthClass", "2FA"))
 
-        #item = self.tblKeys.horizontalHeaderItem(3)
-        #item.setText(_translate("qAuthClass", ""))
-        
-        # Buttons
-        # self.btn_load.setText(_translate("qAuthClass", "Cargar"))
-        #self.addButton.setText(_translate("qAuthClass", "Agregar"))
-
         # Menu
         self.menuFile.setTitle(_translate("qAuthClass", "Fi&le"))
+        self.createDB.setText(_translate("qAuthClass", "&New Datbase"))
         self.openDB.setText(_translate("qAuthClass", "&Open database"))
         self.aboutAction.setText(_translate("qAuthClass", "&About"))
         self.actionQuit.setText(_translate("qAuthClass", "&Quit"))
