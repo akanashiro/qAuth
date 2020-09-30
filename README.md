@@ -15,7 +15,8 @@ Very alpha stage but, what can do:
 In progress:
 - Create a new db file (Ctrl+N).
 
-In the future:
+Plans to the future:
 - Use PySide2 instead of pyQT
+- Create a Kirigami Framework version
 
 ![qAuth](qAuth.png)
