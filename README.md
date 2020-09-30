@@ -17,6 +17,6 @@ In progress:
 
 Plans to the future:
 - Use PySide2 instead of pyQT
-- Create a Kirigami Framework version
+- Create a Kirigami Framework based version
 
 ![qAuth](qAuth.png)
