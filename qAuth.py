@@ -36,7 +36,7 @@ def createConnection(db_file):
     return conn
 
 
-def create_table(conn, create_table_sql):
+def createTable(conn, create_table_sql):
     """ create a table from the create_table_sql statement
     :param conn: Connection object
     :param create_table_sql: a CREATE TABLE statement
@@ -58,7 +58,7 @@ def createDatabase(aConnection):
                         "strOTP"	TEXT NOT NULL
                     );"""
 
-    create_table(connOTP, sqlCreateOTP)
+    createTable(connOTP, sqlCreateOTP)
 
 
 
@@ -286,7 +286,8 @@ class Ui_qAuthClass(object):
 
         print(strService.text())
         print(strOTP.text())
-        connOTP = sqlite3.connect(dbPath)
+        #connOTP = sqlite3.connect(dbPath)
+        connOTP = createConnection(dbPath)
 
         # SQL file
         strFileName = BASE_DIR + "delete_key.sql"
