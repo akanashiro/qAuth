@@ -10,6 +10,7 @@ import time
 # Rutas
 #sys.path.append(".")
 
+from sqlite3 import Error
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 from PyQt5.Qt import QApplication, QClipboard
@@ -17,6 +18,49 @@ from PyQt5.QtCore import QThread, pyqtSignal
 from PyQt5.QtWidgets import QDialog, QMessageBox, QLineEdit, QFileDialog
 
 from addService import Ui_Dialog
+
+# Crear base de datos y tablas
+def createConnection(db_file):
+    """ create a database connection to the SQLite database
+        specified by db_file
+    :param db_file: database file
+    :return: Connection object or None
+    """
+    conn = None
+    try:
+        conn = sqlite3.connect(db_file)
+        return conn
+    except Error as e:
+        print(e)
+
+    return conn
+
+
+def create_table(conn, create_table_sql):
+    """ create a table from the create_table_sql statement
+    :param conn: Connection object
+    :param create_table_sql: a CREATE TABLE statement
+    :return:
+    """
+    try:
+        c = conn.cursor()
+        c.execute(create_table_sql)
+    except Error as e:
+        print(e)
+
+def createDatabase(aConnection):
+
+    connOTP = createConnection(aConnection)
+
+    sqlCreateOTP = """CREATE TABLE "keys" (
+                        "idServicio"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+                        "strServicio"	TEXT NOT NULL,
+                        "strOTP"	TEXT NOT NULL
+                    );"""
+
+    create_table(connOTP, sqlCreateOTP)
+
+
 
 # This class syncs timer with progress bar
 class External(QThread):
@@ -126,7 +170,7 @@ class Ui_qAuthClass(object):
     #***************** FILE DIALOG *****************
 
     # Create DB File
-    def createDatabase(self):
+    def createDBFile(self):
         """
         Create db file and save in path
         """
@@ -141,11 +185,15 @@ class Ui_qAuthClass(object):
             dir = './'
 
         name = QFileDialog.getSaveFileName(None, "Create Database", dir, filter="Sqlite DB (*.db)")
-        fileName = open(name,'w')
-        text = self.textEdit.toPlainText()
-        fileName.write(text)
-        fileName.close()
+        print("file name: " + name[0])
+        fileName = open(name[0],'w')
+        #text = self.textEdit.toPlainText()
+        #fileName.write(text)
+        createDatabase(name[0])
 
+        fileName.close()
+        
+        
 
     # File Dialog box
     def openDatabase(self):
@@ -195,7 +243,9 @@ class Ui_qAuthClass(object):
         """
         global dbPath
 
-        connOTP = sqlite3.connect(dbPath)
+        #connOTP = sqlite3.connect(dbPath)
+        connOTP = createConnection(dbPath)
+
 
         # SQL file
         strFileName = BASE_DIR + "insert_key.sql"
@@ -466,7 +516,7 @@ class Ui_qAuthClass(object):
 
         self.createDB.setShortcut("Ctrl+N")
         self.createDB.setStatusTip('New Database')
-        self.createDB.triggered.connect(self.createDatabase)
+        self.createDB.triggered.connect(self.createDBFile)
         self.menuFile.addAction(self.createDB)
 
         # Open database
