@@ -12,10 +12,17 @@ import time
 
 from sqlite3 import Error
 
-from PyQt5 import QtCore, QtGui, QtWidgets
-from PyQt5.Qt import QApplication, QClipboard
-from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QDialog, QMessageBox, QLineEdit, QFileDialog
+#from PyQt5 import QtCore, QtGui, QtWidgets
+from PySide2 import QtCore, QtGui, QtWidgets
+
+#from PyQt5.Qt import QApplication, QClipboard
+from PySide2.QtGui import QClipboard, QPixmap, QIcon
+
+#from PyQt5.QtCore import QThread, pyqtSignal
+from PySide2.QtCore import QThread, Signal
+
+#from PyQt5.QtWidgets import QDialog, QMessageBox, QLineEdit, QFileDialog
+from PySide2.QtWidgets import QApplication, QDialog, QMessageBox, QLineEdit, QFileDialog, QPushButton
 
 from addService import Ui_Dialog
 
@@ -67,7 +74,7 @@ class External(QThread):
     """
     Runs a counter thread.
     """
-    countChanged = pyqtSignal(int)
+    countChanged = Signal(int)
 
     def run(self):          
         nbrCount = 0
@@ -453,40 +460,56 @@ class Ui_qAuthClass(object):
         self.buttonsLayout.setObjectName("buttonsLayout")
         
         # Add OTP Pushbutton
-        self.addButton = QtWidgets.QPushButton(self.verticalGroupBox)
+        self.addButton = QPushButton(self.verticalGroupBox)
         self.addButton.setObjectName("addButton")        
-        self.addButton.setMaximumWidth(34)
-        self.addButton.setIcon(QtGui.QIcon.fromTheme('list-add-symbolic'))        
-        self.buttonsLayout.addWidget(self.addButton)
+        #self.addButton.setMaximumWidth(34)
+        iconButton = QIcon()
+        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/document-new-symbolic.svg"))
+        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
+        self.addButton.setIcon(iconButton)   
         self.addButton.clicked.connect(self.addService)
         self.addButton.setToolTip("Add Authentication")
 
+        self.buttonsLayout.addWidget(self.addButton)
+
         # Remove OTP button
-        self.removeButton = QtWidgets.QPushButton(self.verticalGroupBox)
+        self.removeButton = QPushButton(self.verticalGroupBox)
         self.removeButton.setObjectName("removeButton")
         self.removeButton.setMaximumWidth(34)
-        self.removeButton.setIcon(QtGui.QIcon.fromTheme('edit-delete-symbolic'))        
-        self.buttonsLayout.addWidget(self.removeButton)
+        iconButton = QIcon()
+        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/edit-delete-symbolic.svg"))
+        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
+        self.removeButton.setIcon(iconButton)   
         self.removeButton.clicked.connect(self.removeOTP)
         self.removeButton.setToolTip("Remove Authentication")
+
+        self.buttonsLayout.addWidget(self.removeButton)
 
         # Show Pushbutton
         self.showButton = QtWidgets.QPushButton(self.verticalGroupBox)
         self.showButton.setObjectName("showButton")     
         self.showButton.setMaximumWidth(34)
-        self.showButton.setIcon(QtGui.QIcon.fromTheme('view-visible'))        
-        self.buttonsLayout.addWidget(self.showButton)
+        iconButton = QIcon()
+        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/document-properties-symbolic.svg"))
+        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
+        self.showButton.setIcon(iconButton)        
         self.showButton.clicked.connect(self.showOTP)
         self.showButton.setToolTip("Show OTP")
+
+        self.buttonsLayout.addWidget(self.showButton)
 
         # Clipboard Pushbutton
         self.clipboardButton = QtWidgets.QPushButton(self.verticalGroupBox)
         self.clipboardButton.setObjectName("clipboardButton")     
         self.clipboardButton.setMaximumWidth(34)
-        self.clipboardButton.setIcon(QtGui.QIcon.fromTheme('edit-copy'))        
-        self.buttonsLayout.addWidget(self.clipboardButton)
+        iconButton = QIcon()
+        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/edit-copy-symbolic.svg"))
+        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
+        self.clipboardButton.setIcon(iconButton)        
         self.clipboardButton.clicked.connect(self.copyOTP)
         self.clipboardButton.setToolTip("Copy 2FA")
+
+        self.buttonsLayout.addWidget(self.clipboardButton)
 
         self.verticalLayout_3.addLayout(self.buttonsLayout)
 
@@ -572,9 +595,11 @@ class Ui_qAuthClass(object):
 
  
 if __name__ == "__main__":
-
     
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + "/db/"
+    dirname = os.path.dirname(__file__)
+    
+    #BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + "/db/"
+    BASE_DIR = dirname + "/db/"
     #dbPath = os.path.join(BASE_DIR, "qauth.db")
     global dbPath
 
