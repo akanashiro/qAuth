@@ -76,16 +76,25 @@ class External(QThread):
     """
     countChanged = Signal(int)
 
-    def run(self):          
+    # Run timer
+    def run(self):
         nbrCount = 0
-        while nbrCount < TIME_LIMIT:
+        while nbrCount < TIME_LIMIT and not self.isInterruptionRequested():
             nbrCount += 1
             time.sleep(1)
             self.countChanged.emit(nbrCount)
 
+    # Stop thread
+    def stop(self):
+        print("Thread Stopped")
+        self.requestInterruption()
+        self.wait()
+
 # Main window class
 class Ui_qAuthClass(object):
 
+    # Thread
+    calc = External()
 
     def onCountChanged(self, aValue):
         """
@@ -141,7 +150,7 @@ class Ui_qAuthClass(object):
             self.remainingTime.setProperty("value", 0)
 
             # Calls function to increase time
-            self.calc = External()
+            #self.calc = External()
             self.calc.countChanged.connect(self.onCountChanged)
             self.calc.start()  
 
@@ -191,7 +200,7 @@ class Ui_qAuthClass(object):
         if dir is None:
             dir = './'
 
-        name = QFileDialog.getSaveFileName(None, "Create Database", dir, filter="Sqlite DB (*.db)")
+            name = QFileDialog.getSaveFileName(self, "Create Database", dir, "Sqlite DB (*.db)")
         print("file name: " + name[0])
         fileName = open(name[0],'w')
         #text = self.textEdit.toPlainText()
@@ -565,12 +574,21 @@ class Ui_qAuthClass(object):
 
         self.retranslateUi(qAuthClass)
 
-        self.actionQuit.triggered.connect(qAuthClass.close)
-        
+        # self.actionQuit.triggered.connect(qAuthClass.close)
+        self.actionQuit.triggered.connect(self.quitApp)
+
         QtCore.QMetaObject.connectSlotsByName(qAuthClass)
 
-        #self.loadData()
+    def quitApp(self):
+        """
+        Quit application
+        """
 
+        # Stop threads first
+        self.calc.stop()
+
+        # Quit!
+        qAuthClass.close()
 
     def retranslateUi(self, qAuthClass):
         _translate = QtCore.QCoreApplication.translate
