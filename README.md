@@ -13,8 +13,7 @@ Very alpha stage but, what can do:
 - Copy to clipboard selected "2FA token"
 - Show/Hide OTP
 
-Plans to the future:
+Plans for the future:
 - Use PySide2 instead of pyQT
-- Create a Kirigami Framework based version
 
 ![qAuth](qAuth.png)
