@@ -200,15 +200,17 @@ class Ui_qAuthClass(object):
         if dir is None:
             dir = './'
 
-            name = QFileDialog.getSaveFileName(self, "Create Database", dir, "Sqlite DB (*.db)")
+            name = QFileDialog.getSaveFileName(None, "Create Database", dir, "Sqlite DB (*.db)")
         print("file name: " + name[0])
+
+        # Create the database
         fileName = open(name[0],'w')
-        #text = self.textEdit.toPlainText()
-        #fileName.write(text)
         createDatabase(name[0])
 
         fileName.close()
-        
+
+        # Opens the Database
+        self.setDBName(name[0])
         
 
     # File Dialog box
