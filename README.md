@@ -13,7 +13,4 @@ Very alpha stage but, what can do:
 - Copy to clipboard selected "2FA token"
 - Show/Hide OTP
 
-Plans for the future:
-- Use PySide2 instead of pyQT
-
 ![qAuth](qAuth.png)
