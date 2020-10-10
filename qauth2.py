@@ -10,122 +10,35 @@ import time
 # Rutas
 #sys.path.append(".")
 
-from sqlite3 import Error
+# Kirigami
+from PySide2.QtGui import QGuiApplication
+from PySide2.QtQml import QQmlApplicationEngine
 
-#from PyQt5 import QtCore, QtGui, QtWidgets
-from PySide2 import QtCore, QtGui, QtWidgets
 
-#from PyQt5.Qt import QApplication, QClipboard
-from PySide2.QtGui import QClipboard, QPixmap, QIcon
-
-#from PyQt5.QtCore import QThread, pyqtSignal
-from PySide2.QtCore import QThread, Signal
-
-#from PyQt5.QtWidgets import QDialog, QMessageBox, QLineEdit, QFileDialog
-from PySide2.QtWidgets import QApplication, QDialog, QMessageBox, QLineEdit, QFileDialog, QPushButton
+from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.Qt import QApplication, QClipboard
+from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtWidgets import QDialog, QMessageBox, QLineEdit, QFileDialog
 
 from addService import Ui_Dialog
-
-
-class qAuthDb():
-
-    boolDbMounted = False
-
-    def __init__(self):
-        #super(qAuthDb, self).__init__()
-        pass
-
-    # boolDbMounted manipulation
-    def isDBMounted(self):
-        """
-        Returns boolDbMounted state
-        """
-        return self.boolDbMounted
-
-    def setDbMounted(self, aState):
-        """
-        Sets Mounted State to True/False
-        """
-        self.boolDbMounted = aState
-
-    # Crear base de datos y tablas
-    def createConnection(self, db_file):
-        """ create a database connection to the SQLite database
-            specified by db_file
-        :param db_file: database file
-        :return: Connection object or None
-        """
-        conn = None
-        try:
-            conn = sqlite3.connect(db_file)
-            return conn
-        except Error as e:
-            print(e)
-
-        return conn
-
-
-    def createTable(self, conn, create_table_sql):
-        """ create a table from the create_table_sql statement
-        :param conn: Connection object
-        :param create_table_sql: a CREATE TABLE statement
-        :return:
-        """
-        try:
-            c = conn.cursor()
-            c.execute(create_table_sql)
-        except Error as e:
-            print(e)
-
-    def createDatabase(self, aConnection):
-        """
-        Create table structure
-        """
-
-        connOTP = self.createConnection(aConnection)
-        
-        #sqlCreateOTP = """CREATE TABLE "keys" (
-        #                    "idServicio"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-        #                    "strServicio"	TEXT NOT NULL,
-        #                    "strOTP"	TEXT NOT NULL
-        #                );"""
-        
-        # SQL file
-        sqlCreateOTP = BASE_DIR + "create_key_table.sql"
-        fd = open(sqlCreateOTP, 'r')
-        sqlFile = fd.read()
-        fd.close()
-
-        self.createTable(connOTP, sqlFile)
 
 # This class syncs timer with progress bar
 class External(QThread):
     """
     Runs a counter thread.
     """
-    countChanged = Signal(int)
+    countChanged = pyqtSignal(int)
 
-    # Run timer
-    def run(self):
+    def run(self):          
         nbrCount = 0
-        while nbrCount < TIME_LIMIT and not self.isInterruptionRequested():
+        while nbrCount < TIME_LIMIT:
             nbrCount += 1
             time.sleep(1)
             self.countChanged.emit(nbrCount)
 
-    # Stop thread
-    def stop(self):
-        print("Thread Stopped")
-        self.requestInterruption()
-        self.wait()
-
 # Main window class
 class Ui_qAuthClass(object):
 
-    # Thread
-    calc = External()
-
-    # Database Mounted
 
     def onCountChanged(self, aValue):
         """
@@ -181,7 +94,7 @@ class Ui_qAuthClass(object):
             self.remainingTime.setProperty("value", 0)
 
             # Calls function to increase time
-            #self.calc = External()
+            self.calc = External()
             self.calc.countChanged.connect(self.onCountChanged)
             self.calc.start()  
 
@@ -217,7 +130,7 @@ class Ui_qAuthClass(object):
     #***************** FILE DIALOG *****************
 
     # Create DB File
-    def createDBFile(self):
+    def createDatabase(self):
         """
         Create db file and save in path
         """
@@ -231,18 +144,12 @@ class Ui_qAuthClass(object):
         if dir is None:
             dir = './'
 
-            name = QFileDialog.getSaveFileName(None, "Create Database", dir, "Sqlite DB (*.db)")
-        print("file name: " + name[0])
-
-        # Create the database
-        fileName = open(name[0],'w')
-        dbAuth.createDatabase(name[0])
-
+        name = QFileDialog.getSaveFileName(None, "Create Database", dir, filter="Sqlite DB (*.db)")
+        fileName = open(name,'w')
+        text = self.textEdit.toPlainText()
+        fileName.write(text)
         fileName.close()
 
-        # Opens the Database
-        self.setDBName(name[0])
-        
 
     # File Dialog box
     def openDatabase(self):
@@ -262,7 +169,7 @@ class Ui_qAuthClass(object):
 
         fileName = QFileDialog.getOpenFileName(None, "Open Database...",
                                             dir, filter="Sqlite DB (*.db)")
-        
+
         if fileName:
             self.setDBName(fileName[0])
 
@@ -274,7 +181,7 @@ class Ui_qAuthClass(object):
 
         srcFile = aFilename.split("/")[-1]
         srcFolder = aFilename.split(srcFile, 1)[0]
-        #lenSplit = len(srcFolder.split("/")) - 2
+        lenSplit = len(srcFolder.split("/")) - 2
 
 
         # Database
@@ -282,16 +189,7 @@ class Ui_qAuthClass(object):
         #print (srcFile)
         #print ("directorio " + srcFolder)
         self.loadData()
-
-        dbAuth.setDbMounted(True)
- 
-        # Enable buttons functionality when Database is open
-        if dbAuth.isDBMounted() == True:
-            self.addButton.clicked.connect(self.addService)
-            self.removeButton.clicked.connect(self.removeOTP)
-            self.showButton.clicked.connect(self.showOTP)
-            self.clipboardButton.clicked.connect(self.copyOTP)
- 
+       
 
     #***************** SQL Actions *****************
 
@@ -301,9 +199,7 @@ class Ui_qAuthClass(object):
         """
         global dbPath
 
-        #connOTP = sqlite3.connect(dbPath)
-        connOTP = dbAuth.createConnection(dbPath)
-
+        connOTP = sqlite3.connect(dbPath)
 
         # SQL file
         strFileName = BASE_DIR + "insert_key.sql"
@@ -344,8 +240,7 @@ class Ui_qAuthClass(object):
 
         print(strService.text())
         print(strOTP.text())
-        #connOTP = sqlite3.connect(dbPath)
-        connOTP = dbAuth.createConnection(dbPath)
+        connOTP = sqlite3.connect(dbPath)
 
         # SQL file
         strFileName = BASE_DIR + "delete_key.sql"
@@ -511,56 +406,40 @@ class Ui_qAuthClass(object):
         self.buttonsLayout.setObjectName("buttonsLayout")
         
         # Add OTP Pushbutton
-        self.addButton = QPushButton(self.verticalGroupBox)
+        self.addButton = QtWidgets.QPushButton(self.verticalGroupBox)
         self.addButton.setObjectName("addButton")        
-        #self.addButton.setMaximumWidth(34)
-        iconButton = QIcon()
-        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/document-new-symbolic.svg"))
-        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.addButton.setIcon(iconButton)
-        #self.addButton.clicked.connect(self.addService)
+        self.addButton.setMaximumWidth(34)
+        self.addButton.setIcon(QtGui.QIcon.fromTheme('list-add-symbolic'))        
+        self.buttonsLayout.addWidget(self.addButton)
+        self.addButton.clicked.connect(self.addService)
         self.addButton.setToolTip("Add Authentication")
 
-        self.buttonsLayout.addWidget(self.addButton)
-
         # Remove OTP button
-        self.removeButton = QPushButton(self.verticalGroupBox)
+        self.removeButton = QtWidgets.QPushButton(self.verticalGroupBox)
         self.removeButton.setObjectName("removeButton")
         self.removeButton.setMaximumWidth(34)
-        iconButton = QIcon()
-        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/edit-delete-symbolic.svg"))
-        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.removeButton.setIcon(iconButton)
-        #self.removeButton.clicked.connect(self.removeOTP)
-        self.removeButton.setToolTip("Remove Authentication")
-
+        self.removeButton.setIcon(QtGui.QIcon.fromTheme('edit-delete-symbolic'))        
         self.buttonsLayout.addWidget(self.removeButton)
+        self.removeButton.clicked.connect(self.removeOTP)
+        self.removeButton.setToolTip("Remove Authentication")
 
         # Show Pushbutton
         self.showButton = QtWidgets.QPushButton(self.verticalGroupBox)
         self.showButton.setObjectName("showButton")     
         self.showButton.setMaximumWidth(34)
-        iconButton = QIcon()
-        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/document-properties-symbolic.svg"))
-        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.showButton.setIcon(iconButton)
-        #self.showButton.clicked.connect(self.showOTP)
-        self.showButton.setToolTip("Show OTP")
-
+        self.showButton.setIcon(QtGui.QIcon.fromTheme('view-visible'))        
         self.buttonsLayout.addWidget(self.showButton)
+        self.showButton.clicked.connect(self.showOTP)
+        self.showButton.setToolTip("Show OTP")
 
         # Clipboard Pushbutton
         self.clipboardButton = QtWidgets.QPushButton(self.verticalGroupBox)
         self.clipboardButton.setObjectName("clipboardButton")     
         self.clipboardButton.setMaximumWidth(34)
-        iconButton = QIcon()
-        pixmapRefresh = QPixmap(os.path.join(dirname, "icons/edit-copy-symbolic.svg"))
-        iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.clipboardButton.setIcon(iconButton)
-        #self.clipboardButton.clicked.connect(self.copyOTP)
-        self.clipboardButton.setToolTip("Copy 2FA")
-
+        self.clipboardButton.setIcon(QtGui.QIcon.fromTheme('edit-copy'))        
         self.buttonsLayout.addWidget(self.clipboardButton)
+        self.clipboardButton.clicked.connect(self.copyOTP)
+        self.clipboardButton.setToolTip("Copy 2FA")
 
         self.verticalLayout_3.addLayout(self.buttonsLayout)
 
@@ -591,7 +470,7 @@ class Ui_qAuthClass(object):
 
         self.createDB.setShortcut("Ctrl+N")
         self.createDB.setStatusTip('New Database')
-        self.createDB.triggered.connect(self.createDBFile)
+        self.createDB.triggered.connect(self.createDatabase)
         self.menuFile.addAction(self.createDB)
 
         # Open database
@@ -616,22 +495,11 @@ class Ui_qAuthClass(object):
 
         self.retranslateUi(qAuthClass)
 
-        # self.actionQuit.triggered.connect(qAuthClass.close)
-        self.actionQuit.triggered.connect(self.quitApp)
-
+        self.actionQuit.triggered.connect(qAuthClass.close)
+        
         QtCore.QMetaObject.connectSlotsByName(qAuthClass)
 
-    def quitApp(self):
-        """
-        Quit application
-        """
-
-        # Stop threads first
-        self.calc.stop()
-
-        # Quit!
-        qAuthClass.close()
-    
+        #self.loadData()
 
 
     def retranslateUi(self, qAuthClass):
@@ -655,34 +523,31 @@ class Ui_qAuthClass(object):
         self.aboutAction.setText(_translate("qAuthClass", "&About"))
         self.actionQuit.setText(_translate("qAuthClass", "&Quit"))
 
-class qAuthMainWindow(QtWidgets.QMainWindow):
-    def closeEvent(self, event):
-        """
-        Exits gracely
-        """
-
-        # Stop threads first
-        ui.calc.stop()
-
  
 if __name__ == "__main__":
+
     
-    dirname = os.path.dirname(__file__)
-    
-    #BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + "/db/"
-    BASE_DIR = dirname + "/db/"
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__)) + "/db/"
     #dbPath = os.path.join(BASE_DIR, "qauth.db")
     global dbPath
 
     # Time limit
     TIME_LIMIT = 30
 
-    dbAuth = qAuthDb()
-    app = QtWidgets.QApplication(sys.argv)
+    app = QGuiApplication()
+    engine = QQmlApplicationEngine()
+    context = engine.rootContext()
+    engine.load("qml/main.qml")
+
+    if len(engine.rootObjects()) == 0:
+        quit()
+    app.exec_()
+
     #qAuthClass = QtWidgets.QMainWindow()
-    qAuthClass = qAuthMainWindow()
-    ui = Ui_qAuthClass()
-    ui.setupUi(qAuthClass)
-    qAuthClass.show()
+    #ui = Ui_qAuthClass()
+    #ui.setupUi(qAuthClass)
+    #qAuthClass.show()
      
-    sys.exit(app.exec_())
+    #sys.exit(app.exec_())
+
+
