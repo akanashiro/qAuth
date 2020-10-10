@@ -56,18 +56,25 @@ def createTable(conn, create_table_sql):
         print(e)
 
 def createDatabase(aConnection):
+    """
+    Create table structure
+    """
 
     connOTP = createConnection(aConnection)
+    
+    #sqlCreateOTP = """CREATE TABLE "keys" (
+    #                    "idServicio"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
+    #                    "strServicio"	TEXT NOT NULL,
+    #                    "strOTP"	TEXT NOT NULL
+    #                );"""
+    
+    # SQL file
+    sqlCreateOTP = BASE_DIR + "create_key_table.sql"
+    fd = open(strFileName, 'r')
+    sqlFile = fd.read()
+    fd.close()
 
-    sqlCreateOTP = """CREATE TABLE "keys" (
-                        "idServicio"	INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT UNIQUE,
-                        "strServicio"	TEXT NOT NULL,
-                        "strOTP"	TEXT NOT NULL
-                    );"""
-
-    createTable(connOTP, sqlCreateOTP)
-
-
+    createTable(connOTP, sqlFile)
 
 # This class syncs timer with progress bar
 class External(QThread):
@@ -95,6 +102,29 @@ class Ui_qAuthClass(object):
 
     # Thread
     calc = External()
+
+    # Database Mounted
+    boolDbMounted = False
+
+    def isDBMounted(self):
+        """
+        Returns boolDbMounted state
+        """
+        return self.boolDbMounted
+    
+    def setDbMounted(self, aState):
+        """
+        Sets Mounted State to True/False
+        """
+        self.boolDbMounted = aState
+
+        # Enable buttons functionality when Database is open
+        if self.isDBMounted() == True:
+            self.addButton.clicked.connect(self.addService)
+            self.removeButton.clicked.connect(self.removeOTP)
+            self.showButton.clicked.connect(self.showOTP)
+            self.clipboardButton.clicked.connect(self.copyOTP)
+
 
     def onCountChanged(self, aValue):
         """
@@ -231,7 +261,7 @@ class Ui_qAuthClass(object):
 
         fileName = QFileDialog.getOpenFileName(None, "Open Database...",
                                             dir, filter="Sqlite DB (*.db)")
-
+        
         if fileName:
             self.setDBName(fileName[0])
 
@@ -251,6 +281,8 @@ class Ui_qAuthClass(object):
         #print (srcFile)
         #print ("directorio " + srcFolder)
         self.loadData()
+
+        self.setDbMounted(True)
        
 
     #***************** SQL Actions *****************
@@ -477,8 +509,8 @@ class Ui_qAuthClass(object):
         iconButton = QIcon()
         pixmapRefresh = QPixmap(os.path.join(dirname, "icons/document-new-symbolic.svg"))
         iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.addButton.setIcon(iconButton)   
-        self.addButton.clicked.connect(self.addService)
+        self.addButton.setIcon(iconButton)
+        #self.addButton.clicked.connect(self.addService)
         self.addButton.setToolTip("Add Authentication")
 
         self.buttonsLayout.addWidget(self.addButton)
@@ -490,8 +522,8 @@ class Ui_qAuthClass(object):
         iconButton = QIcon()
         pixmapRefresh = QPixmap(os.path.join(dirname, "icons/edit-delete-symbolic.svg"))
         iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.removeButton.setIcon(iconButton)   
-        self.removeButton.clicked.connect(self.removeOTP)
+        self.removeButton.setIcon(iconButton)
+        #self.removeButton.clicked.connect(self.removeOTP)
         self.removeButton.setToolTip("Remove Authentication")
 
         self.buttonsLayout.addWidget(self.removeButton)
@@ -503,8 +535,8 @@ class Ui_qAuthClass(object):
         iconButton = QIcon()
         pixmapRefresh = QPixmap(os.path.join(dirname, "icons/document-properties-symbolic.svg"))
         iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.showButton.setIcon(iconButton)        
-        self.showButton.clicked.connect(self.showOTP)
+        self.showButton.setIcon(iconButton)
+        #self.showButton.clicked.connect(self.showOTP)
         self.showButton.setToolTip("Show OTP")
 
         self.buttonsLayout.addWidget(self.showButton)
@@ -516,8 +548,8 @@ class Ui_qAuthClass(object):
         iconButton = QIcon()
         pixmapRefresh = QPixmap(os.path.join(dirname, "icons/edit-copy-symbolic.svg"))
         iconButton.addPixmap(pixmapRefresh, QIcon.Normal, QIcon.Off)
-        self.clipboardButton.setIcon(iconButton)        
-        self.clipboardButton.clicked.connect(self.copyOTP)
+        self.clipboardButton.setIcon(iconButton)
+        #self.clipboardButton.clicked.connect(self.copyOTP)
         self.clipboardButton.setToolTip("Copy 2FA")
 
         self.buttonsLayout.addWidget(self.clipboardButton)

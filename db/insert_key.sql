@@ -1,4 +1,5 @@
-/* Inserts one-time password */ INSERT
+/* Inserts one-time password */
+INSERT
 INTO
     keys
     (strServicio, strOTP)

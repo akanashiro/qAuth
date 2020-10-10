@@ -1,4 +1,5 @@
-/* Delete one-time password */ DELETE
+/* Delete one-time password */
+DELETE
     FROM
         keys
     WHERE
